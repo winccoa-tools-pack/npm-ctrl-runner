@@ -318,12 +318,15 @@ async function main(): Promise<void> {
 }
 
 // Auto-run only when invoked directly (not when imported for testing)
-const isDirectRun =
-    process.argv[1] &&
-    (process.argv[1].endsWith('cli.js') ||
-        process.argv[1].endsWith('cli.ts') ||
-        process.argv[1].endsWith('cli.cjs') ||
-        process.argv[1].endsWith('cli.mjs'));
+// Check if this file is being run directly or via a symlink (e.g., installed via npm link)
+// We detect this by checking if it's the main module being executed
+const isDirectRun = require.main === module || 
+    (process.argv[1] &&
+        (process.argv[1].endsWith('cli.js') ||
+         process.argv[1].endsWith('cli.ts') ||
+         process.argv[1].endsWith('cli.cjs') ||
+         process.argv[1].endsWith('cli.mjs') ||
+         process.argv[1].includes('winccoa-ctrl')));  // Match symlink name
 
 if (isDirectRun) {
     main();
