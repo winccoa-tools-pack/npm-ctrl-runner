@@ -65,11 +65,12 @@ winccoa-ctrl execute script.ctl -v 3.21 -p MyProject --json
 
 ## API Reference
 
-### \`executeScript(options: CtrlExecutionOptions): Promise<CtrlExecutionResult>\`
+### `executeScript(options: CtrlExecutionOptions): Promise\<CtrlExecutionResult\>`
 
 Execute a CTRL script with the given options.
 
 **Options:**
+
 - \`version\` (string, required): WinCC OA version (e.g., "3.21")
 - \`scriptPath\` (string, required): Absolute path to .ctl file
 - \`projectName\` (string, required): Project name for -proj parameter
@@ -82,6 +83,7 @@ Execute a CTRL script with the given options.
 - \`enableTrace\` (boolean, optional): Enable CTRL trace messages
 
 **Returns:** \`CtrlExecutionResult\`
+
 - \`success\`: Whether execution was successful (exitCode === 0)
 - \`exitCode\`: Process exit code
 - \`stdout\`: Complete stdout output
@@ -115,7 +117,7 @@ Get the path to WCCOActrl executable for the given version.
 
 ## CLI Reference
 
-```
+```text
 Usage: winccoa-ctrl execute <scriptPath> [options]
 
 Options:

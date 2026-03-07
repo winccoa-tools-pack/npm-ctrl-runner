@@ -31,7 +31,7 @@ const DEFAULT_TIMEOUT = 60_000;
  *     params: ['arg1', 'arg2'],
  *     timeout: 120000
  * });
- * 
+ *
  * if (result.success) {
  *     console.log('Script completed:', result.stdout);
  * } else {

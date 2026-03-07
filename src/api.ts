@@ -45,9 +45,7 @@ function getSharedRunner(): CtrlRunner {
  * console.log('Output:', result.stdout);
  * ```
  */
-export async function executeScript(
-    options: CtrlExecutionOptions,
-): Promise<CtrlExecutionResult> {
+export async function executeScript(options: CtrlExecutionOptions): Promise<CtrlExecutionResult> {
     const runner = getSharedRunner();
     return runner.execute(options);
 }
@@ -124,4 +122,3 @@ export function getExecutablePath(version: string): string | null {
     const runner = getSharedRunner();
     return runner.getExecutablePath(version);
 }
-

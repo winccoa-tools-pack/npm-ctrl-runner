@@ -20,7 +20,7 @@ npm run style-fix      # Auto-fix lint + format + markdown
 
 ## Architecture
 
-```
+```text
 src/
 ├── runner.ts   # CtrlRunner class — wraps CtrlComponent, builds args, executes
 ├── api.ts      # Convenience functions: executeScript(), createRunner(), checkExecutable()

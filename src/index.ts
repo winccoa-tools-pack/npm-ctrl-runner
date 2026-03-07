@@ -34,10 +34,4 @@ export type {
 export { CtrlRunner } from './runner';
 
 // Convenience API
-export {
-    executeScript,
-    createRunner,
-    checkExecutable,
-    getExecutablePath,
-} from './api';
-
+export { executeScript, createRunner, checkExecutable, getExecutablePath } from './api';

@@ -7,6 +7,7 @@ Das Init-Feature ermöglicht die automatische Erkennung von WinCC OA Installatio
 ## Extrahierte Logik aus vscode_winccoa_scriptactions
 
 Die Script Action Extension enthält derzeit folgende manuelle Konfiguration:
+
 - `installPath`: Pfad zur WinCC OA Installation  
 - `projectName`: Name des Projekts
 - Platform-spezifische Executable-Pfade (WCCOActrl.exe/WCCOActrl)
@@ -14,18 +15,21 @@ Die Script Action Extension enthält derzeit folgende manuelle Konfiguration:
 Diese Logik soll automatisiert werden durch:
 
 ### 1. Installation Detection
+
 - Suche nach WinCC OA Installationen im System
 - Platform-spezifische Pfade (Windows, Linux)
 - Validierung von Installation-Verzeichnissen
 - Version Detection
 
 ### 2. Project Detection  
+
 - Automatische Erkennung von Projekten im Workspace
 - Lesen von `config/config` Dateien
 - Erkennung von Projekt-Struktur (config/, scripts/, panels/, etc.)
 - Unterstützung für Sub-Projekte
 
 ### 3. Configuration API
+
 ```typescript
 interface WinCCOAConfig {
   installPath: string;

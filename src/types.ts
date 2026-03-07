@@ -1,6 +1,6 @@
 /**
  * Options for executing a CTRL script via WCCOActrl.
- * 
+ *
  * @example
  * ```typescript
  * const options: CtrlExecutionOptions = {
@@ -33,7 +33,7 @@ export interface CtrlExecutionOptions {
     /**
      * Optional script parameters (passed as positional arguments).
      * These are passed to the script's main() function.
-     * 
+     *
      * @example ['arg1', 'arg2'] → WCCOActrl script.ctl arg1 arg2 -proj MyProject
      */
     params?: string[];
@@ -80,7 +80,7 @@ export interface CtrlExecutionOptions {
 
 /**
  * Result of a CTRL script execution.
- * 
+ *
  * @example
  * ```typescript
  * const result = await executeScript(options);
@@ -158,7 +158,7 @@ export interface OutputEvent {
 /**
  * Callback function for streaming output events.
  * Called for each chunk of output data during execution.
- * 
+ *
  * @example
  * ```typescript
  * runner.onOutput((event) => {
