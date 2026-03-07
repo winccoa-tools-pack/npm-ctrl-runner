@@ -1,59 +1,76 @@
 #!/usr/bin/env node
 
-import { PnlXmlConverter } from './converter';
-import { ConversionDirection } from './types';
-import type { ConversionOptions } from './types';
+import { executeScript } from './api';
+import type { CtrlExecutionOptions } from './types';
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * CLI exit codes.
  */
 const EXIT_OK = 0;
 const EXIT_USAGE = 1;
-const EXIT_CONVERSION_FAILED = 2;
+const EXIT_EXECUTION_FAILED = 2;
 
 /**
  * Print usage information to stderr.
  */
 function printUsage(): void {
-    const bin = 'winccoa-pnl-xml';
+    const bin = 'winccoa-ctrl';
     process.stderr.write(
         [
             '',
-            `Usage: ${bin} <command> [options]`,
+            `Usage: ${bin} execute <scriptPath> [options]`,
             '',
-            'Commands:',
-            '  convert pnl-to-xml <path>   Convert .pnl panel(s) to XML',
-            '  convert xml-to-pnl <path>   Convert XML file(s) back to .pnl',
+            'Execute a WinCC OA CTRL script via WCCOActrl.',
             '',
             'Options:',
-            '  -v, --version <ver>   WinCC OA version (e.g. 3.20)  [required]',
-            '  -c, --config <path>   WinCC OA project config file',
-            '  -o, --overwrite       Overwrite existing output files',
-            '  -t, --timeout <ms>    Process timeout in milliseconds (default: 60000)',
-            '  -h, --help            Show this help message',
+            '  -v, --version <ver>        WinCC OA version (e.g. 3.21)       [required]',
+            '  -p, --project <name>       Project name                        [required]',
+            '  -t, --timeout <ms>         Execution timeout in ms             (default: 60000)',
+            '  -c, --config <path>        Custom config file path',
+            '  --params <arg1> <arg2>...  Script parameters (positional)',
+            '  --standalone               Run without Data/Event connection (-n)',
+            '  --syntax-only              Syntax check only, no execution',
+            '  --report-file <name>       Report output file',
+            '  --enable-trace             Enable CTRL trace messages (-dbg 29)',
+            '  --silent                   Suppress console output',
+            '  --json                     Output result as JSON',
+            '  -h, --help                 Show this help message',
             '',
             'Examples:',
-            `  ${bin} convert pnl-to-xml panels/myPanel.pnl -v 3.20`,
-            `  ${bin} convert xml-to-pnl panels/myPanel.xml -v 3.20 -o`,
-            `  ${bin} convert pnl-to-xml panels/ -v 3.20 --timeout 120000`,
+            `  ${bin} execute script.ctl -v 3.21 -p MyProject`,
+            `  ${bin} execute /path/to/script.ctl -v 3.21 -p MyProject --standalone`,
+            `  ${bin} execute script.ctl -v 3.21 -p MyProject --params arg1 arg2`,
+            `  ${bin} execute script.ctl -v 3.21 -p MyProject --syntax-only`,
+            `  ${bin} execute script.ctl -v 3.21 -p MyProject --json`,
             '',
         ].join('\n'),
     );
 }
 
 /**
- * Minimal argument parser.
- * Returns the parsed CLI options or null when the input is invalid.
+ * Parsed CLI arguments.
  */
 interface ParsedArgs {
-    direction: ConversionDirection;
-    inputPath: string;
+    scriptPath: string;
     version: string;
-    configPath?: string;
-    overwrite: boolean;
+    projectName: string;
     timeout?: number;
+    configPath?: string;
+    params?: string[];
+    standalone: boolean;
+    syntaxOnly: boolean;
+    reportFile?: string;
+    enableTrace: boolean;
+    silent: boolean;
+    json: boolean;
 }
 
+/**
+ * Minimal argument parser for the execute command.
+ * Returns the parsed CLI options or null when the input is invalid.
+ */
 function parseArgs(argv: string[]): ParsedArgs | null {
     // Strip node + script path
     const args = argv.slice(2);
@@ -62,39 +79,32 @@ function parseArgs(argv: string[]): ParsedArgs | null {
         return null;
     }
 
-    // Expect: convert <pnl-to-xml|xml-to-pnl> <path> [options]
-    if (args[0] !== 'convert') {
-        process.stderr.write(`Error: Unknown command "${args[0]}". Expected "convert".\n`);
+    // Expect: execute <scriptPath> [options]
+    if (args[0] !== 'execute') {
+        process.stderr.write(`Error: Unknown command "${args[0]}". Expected "execute".\n`);
         return null;
     }
 
-    const subCommand = args[1];
-    let direction: ConversionDirection;
-
-    if (subCommand === 'pnl-to-xml') {
-        direction = ConversionDirection.PNL_TO_XML;
-    } else if (subCommand === 'xml-to-pnl') {
-        direction = ConversionDirection.XML_TO_PNL;
-    } else {
-        process.stderr.write(
-            `Error: Unknown sub-command "${subCommand}". Expected "pnl-to-xml" or "xml-to-pnl".\n`,
-        );
-        return null;
-    }
-
-    const inputPath = args[2];
-    if (!inputPath || inputPath.startsWith('-')) {
-        process.stderr.write('Error: Missing input path.\n');
+    const scriptPath = args[1];
+    if (!scriptPath || scriptPath.startsWith('-')) {
+        process.stderr.write('Error: Missing script path.\n');
         return null;
     }
 
     let version = '';
-    let configPath: string | undefined;
-    let overwrite = false;
+    let projectName = '';
     let timeout: number | undefined;
+    let configPath: string | undefined;
+    let params: string[] | undefined;
+    let standalone = false;
+    let syntaxOnly = false;
+    let reportFile: string | undefined;
+    let enableTrace = false;
+    let silent = false;
+    let json = false;
 
     // Parse remaining flags
-    let i = 3;
+    let i = 2;
     while (i < args.length) {
         const flag = args[i];
         switch (flag) {
@@ -102,13 +112,9 @@ function parseArgs(argv: string[]): ParsedArgs | null {
             case '--version':
                 version = args[++i] ?? '';
                 break;
-            case '-c':
-            case '--config':
-                configPath = args[++i] ?? '';
-                break;
-            case '-o':
-            case '--overwrite':
-                overwrite = true;
+            case '-p':
+            case '--project':
+                projectName = args[++i] ?? '';
                 break;
             case '-t':
             case '--timeout': {
@@ -121,6 +127,39 @@ function parseArgs(argv: string[]): ParsedArgs | null {
                 timeout = parsed;
                 break;
             }
+            case '-c':
+            case '--config':
+                configPath = args[++i] ?? '';
+                break;
+            case '--params': {
+                // Collect all remaining non-flag arguments as params
+                params = [];
+                i++;
+                while (i < args.length && !args[i].startsWith('-')) {
+                    params.push(args[i]);
+                    i++;
+                }
+                i--; // Back up one since the outer loop will increment
+                break;
+            }
+            case '--standalone':
+                standalone = true;
+                break;
+            case '--syntax-only':
+                syntaxOnly = true;
+                break;
+            case '--report-file':
+                reportFile = args[++i] ?? '';
+                break;
+            case '--enable-trace':
+                enableTrace = true;
+                break;
+            case '--silent':
+                silent = true;
+                break;
+            case '--json':
+                json = true;
+                break;
             default:
                 process.stderr.write(`Error: Unknown option "${flag}".\n`);
                 return null;
@@ -133,7 +172,25 @@ function parseArgs(argv: string[]): ParsedArgs | null {
         return null;
     }
 
-    return { direction, inputPath, version, configPath, overwrite, timeout };
+    if (!projectName) {
+        process.stderr.write('Error: Project name is required (-p / --project).\n');
+        return null;
+    }
+
+    return {
+        scriptPath,
+        version,
+        projectName,
+        timeout,
+        configPath,
+        params,
+        standalone,
+        syntaxOnly,
+        reportFile,
+        enableTrace,
+        silent,
+        json,
+    };
 }
 
 /**
@@ -148,51 +205,129 @@ async function main(): Promise<void> {
         return;
     }
 
-    const options: ConversionOptions = {
+    // Resolve script path to absolute
+    const absoluteScriptPath = path.resolve(parsed.scriptPath);
+
+    // Check if script exists
+    if (!fs.existsSync(absoluteScriptPath)) {
+        if (parsed.json) {
+            process.stdout.write(
+                JSON.stringify(
+                    {
+                        success: false,
+                        error: `Script file not found: ${absoluteScriptPath}`,
+                    },
+                    null,
+                    2,
+                ) + '\n',
+            );
+        } else {
+            process.stderr.write(`Error: Script file not found: ${absoluteScriptPath}\n`);
+        }
+        process.exitCode = EXIT_USAGE;
+        return;
+    }
+
+    // Build execution options
+    const options: CtrlExecutionOptions = {
         version: parsed.version,
-        inputPath: parsed.inputPath,
-        configPath: parsed.configPath,
-        overwrite: parsed.overwrite,
+        scriptPath: absoluteScriptPath,
+        projectName: parsed.projectName,
         timeout: parsed.timeout,
+        configPath: parsed.configPath,
+        params: parsed.params,
+        standalone: parsed.standalone,
+        syntaxOnly: parsed.syntaxOnly,
+        reportFile: parsed.reportFile,
+        enableTrace: parsed.enableTrace,
     };
 
-    const directionLabel =
-        parsed.direction === ConversionDirection.PNL_TO_XML ? 'PNL → XML' : 'XML → PNL';
-
-    process.stderr.write(`Converting ${directionLabel}: ${parsed.inputPath}\n`);
+    // Print execution info unless silent or JSON mode
+    if (!parsed.silent && !parsed.json) {
+        process.stderr.write(`Executing: ${path.basename(parsed.scriptPath)}\n`);
+        process.stderr.write(`Project: ${parsed.projectName}\n`);
+        process.stderr.write(`Version: ${parsed.version}\n`);
+        if (parsed.params && parsed.params.length > 0) {
+            process.stderr.write(`Parameters: ${parsed.params.join(', ')}\n`);
+        }
+        if (parsed.standalone) {
+            process.stderr.write(`Mode: Standalone (no Data/Event connection)\n`);
+        }
+        if (parsed.syntaxOnly) {
+            process.stderr.write(`Mode: Syntax check only\n`);
+        }
+        process.stderr.write('---\n');
+    }
 
     try {
-        const converter = new PnlXmlConverter();
-        const result = await converter.convert(options, parsed.direction);
+        const result = await executeScript(options);
 
-        if (result.stdout) {
-            process.stdout.write(result.stdout);
-        }
-        if (result.stderr) {
-            process.stderr.write(result.stderr);
+        // Handle JSON output
+        if (parsed.json) {
+            process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+            process.exitCode = result.exitCode;
+            return;
         }
 
-        if (result.success) {
-            process.stderr.write('Conversion completed successfully.\n');
-            process.exitCode = EXIT_OK;
-        } else {
-            process.stderr.write(`Conversion failed with exit code ${result.exitCode}.\n`);
-            process.exitCode = EXIT_CONVERSION_FAILED;
+        // Handle normal output
+        if (!parsed.silent) {
+            if (result.stdout) {
+                process.stdout.write(result.stdout);
+                if (!result.stdout.endsWith('\n')) {
+                    process.stdout.write('\n');
+                }
+            }
+
+            if (result.stderr) {
+                process.stderr.write(result.stderr);
+                if (!result.stderr.endsWith('\n')) {
+                    process.stderr.write('\n');
+                }
+            }
+
+            process.stderr.write('---\n');
+            process.stderr.write(`Exit code: ${result.exitCode}\n`);
+            if (result.duration !== undefined) {
+                process.stderr.write(`Duration: ${result.duration}ms\n`);
+            }
+            process.stderr.write(`Status: ${result.success ? 'SUCCESS' : 'FAILED'}\n`);
         }
+
+        process.exitCode = result.success ? EXIT_OK : EXIT_EXECUTION_FAILED;
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
-        process.stderr.write(`Error: ${message}\n`);
-        process.exitCode = EXIT_CONVERSION_FAILED;
+
+        if (parsed.json) {
+            process.stdout.write(
+                JSON.stringify(
+                    {
+                        success: false,
+                        error: message,
+                        stack: err instanceof Error ? err.stack : undefined,
+                    },
+                    null,
+                    2,
+                ) + '\n',
+            );
+        } else {
+            process.stderr.write(`Fatal error: ${message}\n`);
+        }
+
+        process.exitCode = EXIT_EXECUTION_FAILED;
     }
 }
 
 // Auto-run only when invoked directly (not when imported for testing)
+// Check if this file is being run directly or via a symlink (e.g., installed via npm link)
+// We detect this by checking if it's the main module being executed
 const isDirectRun =
-    process.argv[1] &&
-    (process.argv[1].endsWith('cli.js') ||
-        process.argv[1].endsWith('cli.ts') ||
-        process.argv[1].endsWith('cli.cjs') ||
-        process.argv[1].endsWith('cli.mjs'));
+    require.main === module ||
+    (process.argv[1] &&
+        (process.argv[1].endsWith('cli.js') ||
+            process.argv[1].endsWith('cli.ts') ||
+            process.argv[1].endsWith('cli.cjs') ||
+            process.argv[1].endsWith('cli.mjs') ||
+            process.argv[1].includes('winccoa-ctrl'))); // Match symlink name
 
 if (isDirectRun) {
     main();

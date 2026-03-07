@@ -1,51 +1,124 @@
-import { PnlXmlConverter } from './converter';
-import { ConversionDirection, ConversionOptions, ConversionResult } from './types';
+import { CtrlRunner } from './runner';
+import type { CtrlExecutionOptions, CtrlExecutionResult } from './types';
 
 /**
- * Shared converter instance used by the convenience functions.
+ * Shared singleton runner instance for convenience functions.
  */
-const converter = new PnlXmlConverter();
+let sharedRunner: CtrlRunner | null = null;
 
 /**
- * Convert a WinCC OA .pnl panel file (or directory of panels) to XML.
- *
- * This is a convenience wrapper around {@link PnlXmlConverter.convert}
- * with the direction pre-set to PNL → XML.
- *
- * @param options - Conversion options (version, inputPath, etc.)
- * @returns Conversion result
- *
- * @example
- * ```ts
- * const result = await pnlToXml({
- *     version: '3.20',
- *     inputPath: 'panels/myPanel.pnl',
- * });
- * console.log(result.success); // true
- * ```
+ * Get or create the shared runner instance.
+ * @returns Shared CtrlRunner instance
  */
-export async function pnlToXml(options: ConversionOptions): Promise<ConversionResult> {
-    return converter.convert(options, ConversionDirection.PNL_TO_XML);
+function getSharedRunner(): CtrlRunner {
+    if (!sharedRunner) {
+        sharedRunner = new CtrlRunner();
+    }
+    return sharedRunner;
 }
 
 /**
- * Convert a WinCC OA XML file (or directory of XML files) back to .pnl.
+ * Execute a CTRL script with the given options.
  *
- * This is a convenience wrapper around {@link PnlXmlConverter.convert}
- * with the direction pre-set to XML → PNL.
+ * This is a convenience function that uses a shared runner instance.
+ * For more control (e.g., output streaming), create your own CtrlRunner instance.
  *
- * @param options - Conversion options (version, inputPath, etc.)
- * @returns Conversion result
+ * @param options - Execution configuration
+ * @returns Promise resolving to execution result
  *
  * @example
- * ```ts
- * const result = await xmlToPnl({
- *     version: '3.20',
- *     inputPath: 'panels/myPanel.xml',
+ * ```typescript
+ * import { executeScript } from '@winccoa-tools-pack/npm-winccoa-ctrl';
+ *
+ * const result = await executeScript({
+ *     version: '3.21',
+ *     scriptPath: '/path/to/script.ctl',
+ *     projectName: 'MyProject',
+ *     timeout: 120000
  * });
- * console.log(result.success); // true
+ *
+ * if (!result.success) {
+ *     console.error('Script failed:', result.stderr);
+ *     process.exit(result.exitCode);
+ * }
+ *
+ * console.log('Output:', result.stdout);
  * ```
  */
-export async function xmlToPnl(options: ConversionOptions): Promise<ConversionResult> {
-    return converter.convert(options, ConversionDirection.XML_TO_PNL);
+export async function executeScript(options: CtrlExecutionOptions): Promise<CtrlExecutionResult> {
+    const runner = getSharedRunner();
+    return runner.execute(options);
+}
+
+/**
+ * Create a new CtrlRunner instance.
+ *
+ * Use this when you need multiple independent runners or want to
+ * manage the runner lifecycle yourself (e.g., for output streaming).
+ *
+ * @returns New CtrlRunner instance
+ *
+ * @example
+ * ```typescript
+ * import { createRunner } from '@winccoa-tools-pack/npm-winccoa-ctrl';
+ *
+ * const runner = createRunner();
+ *
+ * // Optional: Register output callback for real-time logging
+ * runner.onOutput((event) => {
+ *     console.log(`[${event.type}]`, event.data);
+ * });
+ *
+ * const result = await runner.execute({
+ *     version: '3.21',
+ *     scriptPath: '/path/to/script.ctl',
+ *     projectName: 'MyProject'
+ * });
+ * ```
+ */
+export function createRunner(): CtrlRunner {
+    return new CtrlRunner();
+}
+
+/**
+ * Check if WCCOActrl executable exists for the given version.
+ *
+ * Useful for validation before attempting script execution.
+ *
+ * @param version - WinCC OA version (e.g., "3.21")
+ * @returns True if executable exists and is accessible
+ *
+ * @example
+ * ```typescript
+ * import { checkExecutable } from '@winccoa-tools-pack/npm-winccoa-ctrl';
+ *
+ * if (!checkExecutable('3.21')) {
+ *     console.error('WCCOActrl not found for version 3.21');
+ *     process.exit(1);
+ * }
+ * ```
+ */
+export function checkExecutable(version: string): boolean {
+    const runner = getSharedRunner();
+    return runner.exists(version);
+}
+
+/**
+ * Get the path to WCCOActrl executable for the given version.
+ *
+ * @param version - WinCC OA version (e.g., "3.21")
+ * @returns Absolute path to WCCOActrl binary, or null if not found
+ *
+ * @example
+ * ```typescript
+ * import { getExecutablePath } from '@winccoa-tools-pack/npm-winccoa-ctrl';
+ *
+ * const path = getExecutablePath('3.21');
+ * console.log('WCCOActrl location:', path);
+ * // Output: /opt/WinCC_OA/3.21/bin/WCCOActrl
+ * ```
+ */
+export function getExecutablePath(version: string): string | null {
+    const runner = getSharedRunner();
+    return runner.getExecutablePath(version);
 }
