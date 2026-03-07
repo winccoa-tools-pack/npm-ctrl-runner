@@ -38,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Package renamed from `@winccoa-tools-pack/npm-winccoa-ui-pnl-xml` to `@winccoa-tools-pack/npm-winccoa-ctrl-runner`.
+- Package renamed from `@winccoa-tools-pack/npm-winccoa-ui-pnl-xml` to `@winccoa-tools-pack/npm-winccoa-ctrl`.
 - CLI binary renamed from `winccoa-pnl-xml` to `winccoa-ctrl`.
 - Full API redesign — replaces `PnlXmlConverter` with `CtrlRunner`.
 

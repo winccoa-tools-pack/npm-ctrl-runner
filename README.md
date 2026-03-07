@@ -5,7 +5,7 @@ Execute WinCC OA CTRL scripts programmatically with TypeScript/JavaScript API an
 ## Installation
 
 ```bash
-npm install @winccoa-tools-pack/npm-winccoa-ctrl-runner
+npm install @winccoa-tools-pack/npm-winccoa-ctrl
 ```
 
 ## Quick Start
@@ -13,7 +13,7 @@ npm install @winccoa-tools-pack/npm-winccoa-ctrl-runner
 ### API Usage
 
 ```typescript
-import { executeScript } from '@winccoa-tools-pack/npm-winccoa-ctrl-runner';
+import { executeScript } from '@winccoa-tools-pack/npm-winccoa-ctrl';
 
 const result = await executeScript({
     version: '3.21',
@@ -165,4 +165,4 @@ MIT
 
 ## Support
 
-[GitHub Issues](https://github.com/winccoa-tools-pack/npm-ctrl-runner/issues)
+[GitHub Issues](https://github.com/winccoa-tools-pack/npm-winccoa-ctrl/issues)

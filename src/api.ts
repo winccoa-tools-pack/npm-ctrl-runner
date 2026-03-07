@@ -28,7 +28,7 @@ function getSharedRunner(): CtrlRunner {
  *
  * @example
  * ```typescript
- * import { executeScript } from '@winccoa-tools-pack/npm-winccoa-ctrl-runner';
+ * import { executeScript } from '@winccoa-tools-pack/npm-winccoa-ctrl';
  *
  * const result = await executeScript({
  *     version: '3.21',
@@ -60,7 +60,7 @@ export async function executeScript(options: CtrlExecutionOptions): Promise<Ctrl
  *
  * @example
  * ```typescript
- * import { createRunner } from '@winccoa-tools-pack/npm-winccoa-ctrl-runner';
+ * import { createRunner } from '@winccoa-tools-pack/npm-winccoa-ctrl';
  *
  * const runner = createRunner();
  *
@@ -90,7 +90,7 @@ export function createRunner(): CtrlRunner {
  *
  * @example
  * ```typescript
- * import { checkExecutable } from '@winccoa-tools-pack/npm-winccoa-ctrl-runner';
+ * import { checkExecutable } from '@winccoa-tools-pack/npm-winccoa-ctrl';
  *
  * if (!checkExecutable('3.21')) {
  *     console.error('WCCOActrl not found for version 3.21');
@@ -111,7 +111,7 @@ export function checkExecutable(version: string): boolean {
  *
  * @example
  * ```typescript
- * import { getExecutablePath } from '@winccoa-tools-pack/npm-winccoa-ctrl-runner';
+ * import { getExecutablePath } from '@winccoa-tools-pack/npm-winccoa-ctrl';
  *
  * const path = getExecutablePath('3.21');
  * console.log('WCCOActrl location:', path);

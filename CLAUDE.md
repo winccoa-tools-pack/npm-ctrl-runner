@@ -1,10 +1,10 @@
-# CLAUDE.md — npm-winccoa-ctrl-runner
+# CLAUDE.md — npm-winccoa-ctrl
 
 ## Project
 
-**Package**: `@winccoa-tools-pack/npm-winccoa-ctrl-runner`
+**Package**: `@winccoa-tools-pack/npm-winccoa-ctrl`
 **Purpose**: TypeScript library + CLI to execute WinCC OA CTRL scripts via `WCCOActrl`.
-**Version**: 1.0.0 — released, stable.
+**Version**: 0.1.0 — initial release, API may still evolve.
 **Branch workflow**: `feature/*` → `develop` → `main`
 
 ## Key Commands

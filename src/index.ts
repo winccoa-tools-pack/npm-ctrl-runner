@@ -6,7 +6,7 @@
  *
  * @example
  * ```typescript
- * import { executeScript } from '@winccoa-tools-pack/npm-winccoa-ctrl-runner';
+ * import { executeScript } from '@winccoa-tools-pack/npm-winccoa-ctrl';
  *
  * const result = await executeScript({
  *     version: '3.21',
