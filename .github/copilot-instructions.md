@@ -4,7 +4,7 @@
 
 This package provides a **reusable library and CLI tool** for executing WinCC OA CTRL scripts via the `WCCOActrl` executable. It follows the established component-based architecture pattern used in other `@winccoa-tools-pack` packages.
 
-**Package Name**: `@winccoa-tools-pack/npm-winccoa-ctrl-runner`  
+**Package Name**: `@winccoa-tools-pack/npm-winccoa-ctrl`  
 **Purpose**: Execute WinCC OA `.ctl` scripts programmatically with TypeScript/JavaScript API and CLI  
 **Target Users**: VS Code extensions, automation tools, CI/CD pipelines, developers
 
@@ -212,7 +212,7 @@ const { stdout, stderr } = await execAsync(command);
 
 **After** (using this library):
 ```typescript
-import { executeScript } from '@winccoa-tools-pack/npm-winccoa-ctrl-runner';
+import { executeScript } from '@winccoa-tools-pack/npm-winccoa-ctrl';
 
 const result = await executeScript({
   version: config.version,
